@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Spoon-Knife</title>
+  <LINK href="styles.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+
+
+    <h1> WarTrammer 40K </h1>
+    <form action="/api/start" method="get">
+        <button class="engage">Engage</button>
+    </form>
+    
+    <form action="/api/line_info" method="post">
+        <label for="line">Tram Line</label>
+        <input type="number" step="1" pattern="\d+" />
+        <label for="run">Tram Line</label>
+        <input type="number" step="1" pattern="\d+" />
+
+        <button class="engage">Calibrate</button>
+    </form>
+
+    <form action="/api/start" method="get">
+        <button class="Disengage">Disengage</button>
+    </form>
+
+</body>
+</html>
