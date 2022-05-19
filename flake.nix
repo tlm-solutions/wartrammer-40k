@@ -19,17 +19,20 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
 
-          package = pkgs.callPackage ./derivation.nix {
+          backend = pkgs.callPackage ./pkgs/backend.nix {
             naersk = naersk.lib.${system};
           };
+          frontend = pkgs.callPackage ./pkgs/frontend.nix { };
 
         in
         rec {
           checks = packages;
-          packages.wartrammer-backend = package;
-          defaultPackage = package;
+          packages.wartrammer-backend = backend;
+          packages.wartrammer-frontend = frontend;
+          defaultPackage = backend;
           overlay = (final: prev: {
-            wartrammer-backend = package;
+            wartrammer-backend = backend;
+            wartrammer-frontend = frontend;
           });
         }
       ) // {

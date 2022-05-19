@@ -1,21 +1,17 @@
-{ naersk, src, lib, pkg-config, cmake, protobuf, stops , zlib}:
+{ naersk, src, lib }:
 
 naersk.buildPackage {
   pname = "data-accumulator";
   version = "0.1.0";
 
-  src = ./.;
+  src = ../.;
 
   cargoSha256 = lib.fakeSha256;
 
-  patchPhase = ''
-    cp ${stops}/stops.json ./stops.json
-  '';
-
-  nativeBuildInputs = [ pkg-config cmake protobuf zlib ];
+  nativeBuildInputs = [ ];
 
   meta = with lib; {
-    description = "Simple rust server which collects data from telegram stations";
-    homepage = "https://github.com/dump-dvb/data-accumulator";
+    description = "Server which handles request from the wartrammer-40k";
+    homepage = "https://github.com/dump-dvb/wartrammer-40k";
   };
 }

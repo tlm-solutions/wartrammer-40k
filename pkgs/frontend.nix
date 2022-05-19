@@ -1,22 +1,18 @@
-{ stdenv, lib, domain }:
+{ stdenv, lib }:
 
 stdenv.mkDerivation {
-  pname = "windshield";
+  pname = "wartrammer-40k-frontend";
   version = "0.1.0";
 
   src = ./.;
-
-  patchPhase = ''
-    substituteInPlace script.js \
-         --replace "dvb.solutions"  "${domain}"
-  '';
 
   installPhase = ''
     mkdir -p $out/bin
     cp -r ./* $out/bin
   '';
+
   meta = with lib; {
-    description = "Simple website which listens to the websockets";
-    homepage = "https://github.com/dump-dvb/windshield";
+    description = "Simple website which people use to record their wartramming effor";
+    homepage = "https://github.com/dump-dvb/wartrammer-40k";
   };
 }
