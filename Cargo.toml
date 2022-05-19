@@ -18,3 +18,4 @@ serde = { version = "1.0.101", features = ["derive"] }
 
 csv = "1.1"
 
+chrono = { version = "0.4", features = ["serde"] }
