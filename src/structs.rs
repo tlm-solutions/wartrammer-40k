@@ -16,7 +16,7 @@ pub struct SaveTelegram {
     pub junction: u32,
     pub destination_number: u32,
     pub priority: u32,
-    pub delay: i32,
+        pub delay: i32,
     pub direction_request: u32,
     pub reserve: u32,
     pub train_length: u32,
