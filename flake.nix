@@ -25,15 +25,18 @@
         in
         rec {
           checks = packages;
-          packages.wartrammer-backend = backend;
-          packages.wartrammer-frontend = frontend;
-          defaultPackage = backend;
-          overlay = (final: prev: {
+          packages = {
             wartrammer-backend = backend;
-            wartrammer-frontend = frontend;
-          });
+          wartrammer-frontend = frontend;
+          default = backend;
+        };
         }
       ) // {
+          overlays.default = final: prev: {
+            inherit (self.packages.${prev.system})
+            wartrammer-backend
+            wartrammer-frontend;
+          };
       hydraJobs =
         let
           hydraSystems = [
