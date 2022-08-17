@@ -35,8 +35,8 @@
           const form_data = new FormData(event.target);
 
           var json_object = { };
-          json_object["line"] = document.getElementById("inputLineNumber").value;
-          json_object["run"] = document.getElementById("inputRunNumber").value;
+          json_object["line"] = parseInt(document.getElementById("inputLineNumber").value);
+          json_object["run"] = parseInt(document.getElementById("inputRunNumber").value);
 
           let xhr = new XMLHttpRequest(); 
           xhr.open("POST", "api/line_info");  
