@@ -132,10 +132,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(current_run.clone())
-            .route("/line_info", web::post().to(meta_data))
+            /*.route("/line_info", web::post().to(meta_data))
             .route("/start", web::get().to(start))
             .route("/stop", web::get().to(stop))
-            .route("/finish", web::get().to(finish))
+            .route("/finish", web::get().to(finish)) */
             .route("/api/line_info", web::post().to(meta_data))
             .route("/api/start", web::get().to(start))
             .route("/api/stop", web::get().to(stop))
