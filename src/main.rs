@@ -29,6 +29,8 @@ struct Response {
 async fn start(current_run: web::Data<Arc<Mutex<MeasurementInterval>>>) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
     unlocked.start = Some(Utc::now().naive_utc());
+
+    println!("entering vehicle at : {:?}", &unlocked.start);
     web::Json(Response { success: true })
 }
 
@@ -43,6 +45,7 @@ async fn stop(current_run: web::Data<Arc<Mutex<MeasurementInterval>>>) -> impl R
     }
 
     unlocked.stop = Some(Utc::now().naive_utc());
+    println!("leaving vehicle at : {:?}", &unlocked.stop);
 
     let data = fs::read_to_string(&time_file).expect("Unable to read file");
     let mut res: Vec<MeasurementInterval> = serde_json::from_str(&data).expect("Unable to parse");
@@ -64,6 +67,7 @@ async fn meta_data(
     unlocked.line = Some(meta_data.line);
     unlocked.run = Some(meta_data.run);
 
+    println!("adding meta data : line: {:?} run: {:?}", &unlocked.line, &unlocked.run);
     web::Json(Response { success: true })
 }
 
@@ -76,6 +80,8 @@ async fn finish() -> impl Responder {
 
     let default_out_file = String::from("/var/lib/wartrammer-40k/out.csv");
     let out_file = env::var("OUT_DATA").unwrap_or(default_out_file);
+
+    println!("finishing wartramming: time_file: {} in_file: {} out_file: {}", &time_file, &in_file, &out_file);
 
     let data = fs::read_to_string(&time_file).expect("Unable to read file");
     let res: Vec<FinishedMeasurementInterval> = serde_json::from_str(&data).expect("Unable to parse");
