@@ -4,7 +4,7 @@ stdenv.mkDerivation {
   pname = "wartrammer-40k-frontend";
   version = "0.1.0";
 
-  src = ./.;
+  src = ../frontend/.;
 
   installPhase = ''
     mkdir -p $out/bin
