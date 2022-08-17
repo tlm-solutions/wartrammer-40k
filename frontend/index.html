@@ -15,9 +15,9 @@
 
     <form action="/api/line_info" method="post" id="line_data">
         <label for="line">Tram Line</label>
-        <input type="number" step="1" pattern="\d+" /></br>
+        <input type="number" step="1" pattern="\d+" id="inputLineNumber"/></br>
         <label for="run">Run Number</label>
-        <input type="number" step="1" pattern="\d+" />
+        <input type="number" step="1" pattern="\d+" id="inputRunNumber"/>
 
         <button class="engage">Update</button>
     </form>
@@ -35,8 +35,8 @@
           const form_data = new FormData(event.target);
 
           var json_object = { };
-          json_object["line"] = form_data.get("line");
-          json_object["run"] = form_data.get("run");
+          json_object["line"] = document.getElementById("inputLineNumber").value;
+          json_object["run"] = document.getElementById("inputRunNumber").value;
 
           let xhr = new XMLHttpRequest(); 
           xhr.open("POST", "api/line_info");  
