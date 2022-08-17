@@ -34,8 +34,9 @@
 
           const form_data = new FormData(event.target);
 
-          var json_object = {};
-          form_data.forEach((value, key) => json_object[key] = value);
+          var json_object = { };
+          json_object["line"] = form_data.get("line");
+          json_object["run"] = form_data.get("run");
 
           let xhr = new XMLHttpRequest(); 
           xhr.open("POST", "api/line_info");  
