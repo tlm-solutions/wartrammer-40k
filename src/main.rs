@@ -136,6 +136,10 @@ async fn main() -> std::io::Result<()> {
             .route("/start", web::get().to(start))
             .route("/stop", web::get().to(stop))
             .route("/finish", web::get().to(finish))
+            .route("/api/line_info", web::post().to(meta_data))
+            .route("/api/start", web::get().to(start))
+            .route("/api/stop", web::get().to(stop))
+            .route("/api/finish", web::get().to(finish))
     })
     .bind((host, port))?
     .run()
