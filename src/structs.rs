@@ -1,28 +1,8 @@
 extern crate clap;
 extern crate derive_builder;
 
-use chrono::{DateTime, Utc};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct SaveTelegram {
-    pub time: DateTime<Utc>,
-    pub ip: String,
-    pub station_id: u32,
-    pub line: u32,
-    pub run_number: u32,
-    pub reporting_point: u32,
-    pub junction: u32,
-    pub destination_number: u32,
-    pub priority: u32,
-        pub delay: i32,
-    pub direction_request: u32,
-    pub reserve: u32,
-    pub train_length: u32,
-    pub junction_number: u32,
-    pub request_status: u32,
-}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Response {
