@@ -42,7 +42,7 @@
           xhr.setRequestHeader("Accept", "application/json"); 
           xhr.setRequestHeader("Content-Type", "application/json");  
           xhr.onload = () => console.log(xhr.responseText);  
-          xhr.send(json_object);
+          xhr.send(JSON.stringify(json_object));
         }
 
         const form = document.querySelector('#line_data');
