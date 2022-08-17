@@ -1,4 +1,4 @@
-{ naersk, src, lib }:
+{ naersk, src, lib, cmake, postgresql_14 }:
 
 naersk.buildPackage {
   pname = "data-accumulator";
@@ -8,7 +8,8 @@ naersk.buildPackage {
 
   cargoSha256 = lib.fakeSha256;
 
-  nativeBuildInputs = [ ];
+  nativeBuildInputs = [ cmake ];
+  buildInputs = [ postgresql_14 ];
 
   meta = with lib; {
     description = "Server which handles request from the wartrammer-40k";
