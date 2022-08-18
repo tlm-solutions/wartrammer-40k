@@ -9,9 +9,11 @@
 
 <body>
     <h1> WarTrammer 40K </h1>
-    <form action="/api/start" method="get">
+    <form action="/api/start" method="get" target="engage_iframe">
         <button class="engage">Engage</button>
     </form>
+    <iframe id="subframe" name="engage_iframe">
+    </iframe>
 
     <form action="/api/line_info" method="post" id="line_data">
         <label for="line">Tram Line</label>
@@ -22,9 +24,12 @@
         <button class="engage">Update</button>
     </form>
 
-    <form action="/api/start" method="get">
+    <form action="/api/stop" method="get" target="disengage_iframe">
         <button class="Disengage">Disengage</button>
     </form>
+    <iframe id="subframe" name="disengage_iframe">
+    </iframe>
+
     <form action="/api/finish" method="get">
         <button class="Finsish">Finsih</button>
     </form>
