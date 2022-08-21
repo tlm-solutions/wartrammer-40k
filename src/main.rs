@@ -1,10 +1,16 @@
 mod structs;
-
 use structs::Args;
+
+use dump_dvb::telegrams::r09::R09SaveTelegram;
+use dump_dvb::measurements::{MeasurementInterval, FinishedMeasurementInterval};
 
 use actix_web::{web, App, HttpServer, Responder};
 use chrono::Utc;
 use clap::Parser;
+use serde::{Deserialize, Serialize};
+use chrono::NaiveDateTime;
+use log::{info, error, debug};
+
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -12,10 +18,7 @@ use std::path::Path;
 use std::io::Write;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use serde::{Deserialize, Serialize};
-use chrono::NaiveDateTime;
-use dump_dvb::telegrams::r09::R09SaveTelegram;
-use dump_dvb::measurements::{MeasurementInterval, FinishedMeasurementInterval};
+
 
 #[derive(Deserialize, Serialize)]
 struct LineInfo {
@@ -33,7 +36,7 @@ async fn start(current_run: web::Data<Arc<Mutex<MeasurementInterval>>>) -> impl 
     let mut unlocked = current_run.lock().unwrap();
     unlocked.start = Some(Utc::now().naive_utc());
 
-    println!("entering vehicle at : {:?}", &unlocked.start);
+    info!("entering vehicle at : {:?}", &unlocked.start);
     web::Json(Response { success: true, time: unlocked.start.unwrap() })
 }
 
@@ -48,20 +51,20 @@ async fn stop(current_run: web::Data<Arc<Mutex<MeasurementInterval>>>) -> impl R
     }
 
     unlocked.stop = Some(Utc::now().naive_utc());
-    println!("leaving vehicle at : {:?}", &unlocked.stop);
+    info!("leaving vehicle at : {:?}", &unlocked.stop);
 
     match fs::create_dir_all("/var/lib/wartrammer-40k/") {
         Ok(_) => {
-            println!("Successfully creates directories ... ");
+            info!("Successfully creates directories ... ");
         },
         Err(e) => {
-            println!("Did not create directories because of {:?}", e);
+            debug!("Did not create directories because of {:?}", e);
         }
     };
 
     let path_time_file = Path::new(&time_file);
     if !path_time_file.exists() {
-        println!("time file at: {} doesn't exist trying to create it.", &time_file);
+        debug!("time file at: {} doesn't exist trying to create it.", &time_file);
         let _file = File::create(&time_file).expect("Cannot create file");
     }
 
@@ -95,7 +98,7 @@ async fn meta_data(
     unlocked.line = Some(meta_data.line);
     unlocked.run = Some(meta_data.run);
 
-    println!("adding meta data : line: {:?} run: {:?}", &unlocked.line, &unlocked.run);
+    info!("adding meta data : line: {:?} run: {:?}", &unlocked.line, &unlocked.run);
 
     web::Json(Response { success: true, time: Utc::now().naive_utc() })
 }
@@ -110,10 +113,31 @@ async fn finish() -> impl Responder {
     let default_out_file = String::from("/var/lib/wartrammer-40k/out.csv");
     let out_file = env::var("OUT_DATA").unwrap_or(default_out_file);
 
-    println!("finishing wartramming: time_file: {} in_file: {} out_file: {}", &time_file, &in_file, &out_file);
+    info!("finishing wartramming: time_file: {} in_file: {} out_file: {}", &time_file, &in_file, &out_file);
 
-    let data = fs::read_to_string(&time_file).expect("Unable to read file");
-    let res: Vec<FinishedMeasurementInterval> = serde_json::from_str(&data).expect("Unable to parse");
+    let data: String;
+
+    match fs::read_to_string(&time_file) {
+        Ok(read_data) => {
+            data = read_data;
+        }
+        Err(e) => {
+            error!("Unable to read the {} file with following error {:?}", &time_file, e);
+            return web::Json(Response { success: false, time: Utc::now().naive_utc() })
+        }
+    }
+
+    let res: Vec<FinishedMeasurementInterval>;
+
+    match serde_json::from_str(&data) {
+        Ok(deserialzed_data) => {
+            res = deserialzed_data; 
+        }
+        Err(e) => {
+            error!("Cannot deserialize data from file: {:?}", e);
+            return web::Json(Response { success: false, time: Utc::now().naive_utc() })
+        }
+    }
 
     let mut rdr = csv::Reader::from_reader(File::open(&in_file).unwrap());
 
