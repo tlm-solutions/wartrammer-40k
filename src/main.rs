@@ -139,8 +139,17 @@ async fn finish() -> impl Responder {
         }
     }
 
-    let mut rdr = csv::Reader::from_reader(File::open(&in_file).unwrap());
+    let mut rdr;
+    match File::open(&in_file) {
+        Ok(file) => {
+            rdr = csv::Reader::from_reader(file);
+        }
+        Err(e) => {
+            error!("Problen with opening file {} with error {:?}", &in_file, e);
+            return web::Json(Response { success: false, time: Utc::now().naive_utc()});
+        }
 
+    }
     let data = rdr.deserialize();
     let mut formatted_data = Vec::new();
 
@@ -160,8 +169,16 @@ async fn finish() -> impl Responder {
         return false;
     });
 
-    let file = File::create(&out_file).unwrap();
-    let mut wtr = csv::Writer::from_writer(file);
+    let mut wtr;
+    match File::create(&out_file) {
+        Ok(file) => {
+             wtr = csv::Writer::from_writer(file);
+        }
+        Err(e) => {
+            error!("cannot create out file {} with error {:?}", &out_file, e);
+            return web::Json(Response { success: false, time: Utc::now().naive_utc() });
+        }
+    }
 
     for entry in formatted_data {
         wtr.serialize(&entry).unwrap();
