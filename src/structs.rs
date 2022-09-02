@@ -20,9 +20,6 @@ pub struct Args {
 
     #[clap(short, long, default_value_t = 8080)]
     pub port: u16,
-
-    #[clap(short, long, default_value_t = String::from("http://[::1]:50051"))]
-    pub grpc_host: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
