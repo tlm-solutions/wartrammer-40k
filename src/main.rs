@@ -1,10 +1,8 @@
 mod structs;
 mod storage;
-mod filter;
 
 use structs::Args;
 use storage::CSVFile;
-use filter::{Filter, deduplicate};
 
 use dump_dvb::telegrams::r09::R09SaveTelegram;
 use dump_dvb::measurements::{MeasurementInterval, FinishedMeasurementInterval};
@@ -17,7 +15,6 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use chrono::NaiveDateTime;
 use log::{info, error, debug};
-use uuid::Uuid;
 
 use std::env;
 use std::fs;
@@ -41,7 +38,6 @@ struct Response {
 
 async fn start(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<Filter>>,
     _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
@@ -53,7 +49,6 @@ async fn start(
 
 async fn stop(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<Filter>>,
     _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
     let default_file = String::from("/var/lib/wartrammer-40k/times.json");
@@ -106,7 +101,6 @@ async fn stop(
 
 async fn meta_data(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<Filter>>,
     _: web::Data<Mutex<CSVFile>>,
     meta_data: web::Json<LineInfo>,
 ) -> impl Responder {
@@ -206,19 +200,13 @@ async fn finish() -> impl Responder {
 
 async fn receive_r09(
     _: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    filter: web::Data<Mutex<Filter>>,
     storage: web::Data<Mutex<CSVFile>>,
     telegram: web::Json<R09ReceiveTelegram>
     ) -> impl Responder {
-
-     let telegram_hash = Filter::calculate_hash(&*telegram).await;
-    if deduplicate(&mut (filter.lock().unwrap()), telegram_hash).await {
-        return web::Json(Response { success: false, time: Utc::now().naive_utc() })
-    }
-
+    
     let meta = TelegramMetaInformation {
         time: Utc::now().naive_utc(),
-        station: Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap(),
+        station: uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap(),
         region: -1
     };
 
@@ -245,15 +233,12 @@ async fn main() -> std::io::Result<()> {
         stop: None,
     })));
 
-    let filter = web::Data::new(Mutex::new(Filter::new()));
     let storage = web::Data::new(Mutex::new(CSVFile::new()));
-
     storage.lock().unwrap().setup();
 
     HttpServer::new( move || {
         App::new()
             .app_data(current_run.clone())
-            .app_data(filter.clone())
             .app_data(storage.clone())
             .route("/api/line_info", web::post().to(meta_data))
             .route("/api/start", web::get().to(start))
