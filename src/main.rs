@@ -114,7 +114,10 @@ async fn meta_data(
     web::Json(Response { success: true, time: Utc::now().naive_utc() })
 }
 
-async fn finish() -> impl Responder {
+async fn finish(
+    current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
+    _: web::Data<Mutex<CSVFile>>,
+) -> impl Responder {
     let default_file = String::from("/var/lib/wartrammer-40k/times.json");
     let time_file = env::var("PATH_DATA").unwrap_or(default_file);
 
@@ -195,7 +198,24 @@ async fn finish() -> impl Responder {
         wtr.serialize(&entry).unwrap();
     }
 
+    // clear the state on save
+    let mut unlocked = current_run.lock().unwrap();
+
+    unlocked.line = None;
+    unlocked.run = None;
+    unlocked.start = None;
+    unlocked.stop = None;
+
     web::Json(Response { success: true, time: Utc::now().naive_utc() })
+}
+
+async fn state(
+    current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
+    _: web::Data<Mutex<CSVFile>>
+) -> impl Responder {
+    let unlocked = current_run.lock().unwrap().clone();
+
+    web::Json(unlocked)
 }
 
 async fn receive_r09(
@@ -244,6 +264,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/start", web::get().to(start))
             .route("/api/stop", web::get().to(stop))
             .route("/api/finish", web::get().to(finish))
+            .route("/api/state", web::get().to(state))
             .route("/telegram/r09", web::post().to(receive_r09))
     })
     .bind((host, port))?
