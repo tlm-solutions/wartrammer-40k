@@ -22,7 +22,6 @@
             naersk = naersk.lib.${system};
           };
           frontend = pkgs.callPackage ./pkgs/frontend.nix { };
-
         in
         rec {
           checks = packages;
