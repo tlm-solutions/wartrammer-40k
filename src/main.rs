@@ -14,7 +14,7 @@ use chrono::Utc;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use chrono::NaiveDateTime;
-use log::{info, error, debug};
+use log::{info, warn, error, debug};
 
 use std::env;
 use std::fs;
@@ -36,6 +36,13 @@ struct Response {
     time: NaiveDateTime
 }
 
+#[derive(Deserialize, Serialize)]
+struct StatusResponse {
+    success: bool,
+    status: MeasurementInterval,
+    time: NaiveDateTime
+}
+
 async fn start(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
     _: web::Data<Mutex<CSVFile>>,
@@ -51,51 +58,10 @@ async fn stop(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
     _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
-    let default_file = String::from("/var/lib/wartrammer-40k/times.json");
-    let time_file = env::var("PATH_DATA").unwrap_or(default_file);
-
     let mut unlocked = current_run.lock().unwrap();
-
-    if unlocked.start == None || unlocked.line == None {
-        return web::Json(Response { success: false, time: Utc::now().naive_utc()});
-    }
-
     unlocked.stop = Some(Utc::now().naive_utc());
-    info!("leaving vehicle at : {:?}", &unlocked.stop);
 
-    match fs::create_dir_all("/var/lib/wartrammer-40k/") {
-        Ok(_) => {
-            info!("Successfully creates directories ... ");
-        },
-        Err(e) => {
-            debug!("Did not create directories because of {:?}", e);
-        }
-    };
-
-    let path_time_file = Path::new(&time_file);
-    if !path_time_file.exists() {
-        debug!("time file at: {} doesn't exist trying to create it.", &time_file);
-        let _file = File::create(&time_file).expect("Cannot create file");
-    }
-
-    let data = fs::read_to_string(&time_file).expect("Unable to read file");
-
-    let mut res: Vec<MeasurementInterval>;
-    match serde_json::from_str(&data) {
-        Ok(data) => {
-            res = data;
-        }
-        Err(_) => {
-            res = Vec::new();
-        }
-    }
-
-    res.push(unlocked.deref().clone());
-    let raw_string = serde_json::to_string(&res).unwrap();
-
-    let mut file = File::create(&time_file).expect("unable to create output file");
-    writeln!(&mut file, "{}", raw_string).expect("unable to write to outout file");
-
+    info!("leaving vehicle at : {:?}", &unlocked.start);
     web::Json(Response { success: true, time: unlocked.stop.unwrap() })
 }
 
@@ -118,8 +84,15 @@ async fn finish(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
     _: web::Data<Mutex<CSVFile>>,
 ) -> impl Responder {
-    let default_file = String::from("/var/lib/wartrammer-40k/times.json");
-    let time_file = env::var("PATH_DATA").unwrap_or(default_file);
+    let mut unlocked = current_run.lock().unwrap();
+    
+    // give an error if the status is not populated properly
+    if unlocked.start == None || unlocked.stop == None || unlocked.line == None || unlocked.run == None {
+        return web::Json(StatusResponse { success: false, status: unlocked.clone(), time: Utc::now().naive_utc() });
+    }
+
+    let default_time_file = String::from("/var/lib/wartrammer-40k/times.json");
+    let time_file = env::var("PATH_DATA").unwrap_or(default_time_file);
 
     let default_in_file = String::from("/var/lib/data-accumulator/formatted.csv");
     let in_file = env::var("IN_DATA").unwrap_or(default_in_file);
@@ -127,32 +100,53 @@ async fn finish(
     let default_out_file = String::from("/var/lib/wartrammer-40k/out.csv");
     let out_file = env::var("OUT_DATA").unwrap_or(default_out_file);
 
+    // create time file if it does not exist
+    if !Path::new(&time_file).exists() {
+        debug!("time file at: {} doesn't exist trying to create it.", &time_file);
+        let _file = File::create(&time_file).expect("Cannot create file");
+    }
+
+    let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
+
+    // read all previous
+    let mut measurements: Vec<MeasurementInterval>;
+    match serde_json::from_str(&time_data) {
+        Ok(data) => {
+            measurements = data;
+        }
+        Err(_) => {
+            debug!("time file is empty, creating new vector");
+            measurements = Vec::new();
+        }
+    }
+
+    // add current state
+    measurements.push(unlocked.deref().clone());
+
+    // write it back to file
+    let raw_string = serde_json::to_string(&measurements).unwrap();
+
+    let mut file = File::create(&time_file).expect("unable to create output file");
+    writeln!(&mut file, "{}", raw_string).expect("unable to write to outout file");
+
+    // read measurements back in as FinishedMeasurementInterval because we don't have a method to
+    // change one to the other
+    let mut finishedMeasurements: Vec<FinishedMeasurementInterval>;
+    match serde_json::from_str(&time_data) {
+        Ok(data) => {
+            finishedMeasurements = data;
+        }
+        Err(_) => {
+            error!("time file is empty, but wrote it above");
+            return web::Json(StatusResponse { success: false, status: unlocked.clone(), time: Utc::now().naive_utc() });
+        }
+    }
+
     info!("finishing wartramming: time_file: {} in_file: {} out_file: {}", &time_file, &in_file, &out_file);
 
+    // read formatted.json (input) and only save all time section where wartramming was actually
+    // happening (out.json)
     let data: String;
-
-    match fs::read_to_string(&time_file) {
-        Ok(read_data) => {
-            data = read_data;
-        }
-        Err(e) => {
-            error!("Unable to read the {} file with following error {:?}", &time_file, e);
-            return web::Json(Response { success: false, time: Utc::now().naive_utc() })
-        }
-    }
-
-    let res: Vec<FinishedMeasurementInterval>;
-
-    match serde_json::from_str(&data) {
-        Ok(deserialzed_data) => {
-            res = deserialzed_data; 
-        }
-        Err(e) => {
-            error!("Cannot deserialize data from file: {:?}", e);
-            return web::Json(Response { success: false, time: Utc::now().naive_utc() })
-        }
-    }
-
     let mut rdr;
     match File::open(&in_file) {
         Ok(file) => {
@@ -160,9 +154,8 @@ async fn finish(
         }
         Err(e) => {
             error!("Problen with opening file {} with error {:?}", &in_file, e);
-            return web::Json(Response { success: false, time: Utc::now().naive_utc()});
+            return web::Json(StatusResponse { success: false, status: unlocked.clone(), time: Utc::now().naive_utc() });
         }
-
     }
     let data = rdr.deserialize();
     let mut formatted_data = Vec::new();
@@ -171,18 +164,20 @@ async fn finish(
         formatted_data.push(entry.unwrap());
     }
 
+    // do the filtering
     formatted_data.retain(|record: &R09SaveTelegram| -> bool {
-        for intervall in &res {
+        for intervall in &finishedMeasurements {
             if intervall.fits(record) {
-                println!("keeping: {:?}", record);
+                debug!("keeping: {:?}", record);
                 return true;
             }
         }
 
-        println!("dropping: {:?}", record);
+        debug!("dropping: {:?}", record);
         return false;
     });
 
+    // save back to file
     let mut wtr;
     match File::create(&out_file) {
         Ok(file) => {
@@ -190,7 +185,7 @@ async fn finish(
         }
         Err(e) => {
             error!("cannot create out file {} with error {:?}", &out_file, e);
-            return web::Json(Response { success: false, time: Utc::now().naive_utc() });
+            return web::Json(StatusResponse { success: false, status: unlocked.clone(), time: Utc::now().naive_utc() });
         }
     }
 
@@ -198,15 +193,13 @@ async fn finish(
         wtr.serialize(&entry).unwrap();
     }
 
-    // clear the state on save
-    let mut unlocked = current_run.lock().unwrap();
-
+    // after we have saved everything, clear the state for the next run
     unlocked.line = None;
     unlocked.run = None;
     unlocked.start = None;
     unlocked.stop = None;
 
-    web::Json(Response { success: true, time: Utc::now().naive_utc() })
+    web::Json(StatusResponse { success: true, status: unlocked.clone(), time: Utc::now().naive_utc() })
 }
 
 async fn state(
@@ -215,7 +208,7 @@ async fn state(
 ) -> impl Responder {
     let unlocked = current_run.lock().unwrap().clone();
 
-    web::Json(unlocked)
+    web::Json(StatusResponse { success: true, status: unlocked.clone(), time: Utc::now().naive_utc() })
 }
 
 async fn receive_r09(
@@ -235,7 +228,6 @@ async fn receive_r09(
     web::Json(Response { success: true, time: Utc::now().naive_utc() })
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args = Args::parse();
@@ -245,6 +237,16 @@ async fn main() -> std::io::Result<()> {
     let port = args.port;
 
     println!("Listening on: {}:{}", host, port);
+
+    // create directory if it does not exist
+    match fs::create_dir_all("/var/lib/wartrammer-40k/") {
+        Ok(_) => {
+            info!("Successfully creates directories ... ");
+        },
+        Err(e) => {
+            warn!("Did not create directories because of {:?}", e);
+        }
+    };
 
     let current_run = web::Data::new(Arc::new(Mutex::new(MeasurementInterval {
         line: None,
