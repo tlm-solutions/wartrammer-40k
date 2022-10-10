@@ -12,8 +12,7 @@
       patches = stable.unwrapped.patches ++ [ ../sort_flutter_resources.patch ];
 		};
   in stdenvNoCC.mkDerivation {
-    pname = "wartrammer-frontend";
-    version = outputHash;
+    name = "wartrammer-frontend";
 
     src = stdenvNoCC.mkDerivation {
       name = "wartrammer-frontend-fixed-output-derivation.tar.gz";
