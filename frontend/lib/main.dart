@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:core';
 import 'package:universal_io/io.dart';
 
 void main() {
@@ -36,8 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Timer timer = Timer(Duration(milliseconds: 100), () {});
   String elapsedTime = 'Not running';
   var client = HttpClient();
-  String host = 'localhost';
-  int port = 8000;
+  String host = Uri.base.origin.toString(); // 'http://localhost:8000'
   String line = '';
   String run = '';
 
@@ -73,8 +73,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   callApiGet(String endpoint, callback) async {
     try {
-      print("Calling endpoint $endpoint");
-      var request = await client.get(host, port, endpoint);
+      print("Calling endpoint $host$endpoint");
+      var request = await client.getUrl(Uri.parse(host + endpoint));
       var response = await request.close();
       if (response.statusCode != 200) {
         throw Exception("HTTP status code is " +
@@ -83,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       final stringData = await response.transform(utf8.decoder).join();
       var decoded = json.decode(stringData);
-      if (decoded['success'] == 'true') {
+      if (decoded['success'] == true) {
         callback();
       } else {
         throw Exception("Error occured in backend: $decoded");
@@ -96,8 +96,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   callApiPost(String endpoint, body, callback) async {
     try {
-      print("Calling endpoint $endpoint");
-      var request = await client.post(host, port, endpoint);
+      print("Calling endpoint $host$endpoint");
+      var request = await client.postUrl(Uri.parse(host + endpoint));
       request.headers.contentType =
           ContentType('application', 'json', charset: 'utf-8');
       request.headers.contentLength = body.length;
@@ -110,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       final stringData = await response.transform(utf8.decoder).join();
       var decoded = json.decode(stringData);
-      if (decoded['success'] == 'true') {
+      if (decoded['success'] == true) {
         callback();
       } else {
         throw Exception("Error occured in backend: $decoded");
