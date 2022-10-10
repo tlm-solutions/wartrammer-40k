@@ -1,0 +1,13 @@
+diff --git a/packages/flutter_tools/lib/src/build_system/targets/web.dart b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+index 35b7b4e765..e8aa0c44cd 100644
+--- a/packages/flutter_tools/lib/src/build_system/targets/web.dart
++++ b/packages/flutter_tools/lib/src/build_system/targets/web.dart
+@@ -501,7 +501,7 @@ class WebServiceWorker extends Target {
+       environment.defines[kServiceWorkerStrategy],
+     );
+     final String serviceWorker = generateServiceWorker(
+-      urlToHash,
++      Map.fromEntries(urlToHash.entries.toList()..sort((e1, e2) => e1.key.compareTo(e2.key))),
+       <String>[
+         'main.dart.js',
+         'index.html',

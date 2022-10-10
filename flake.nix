@@ -21,7 +21,7 @@
           backend = pkgs.callPackage ./pkgs/backend.nix {
             naersk = naersk.lib.${system};
           };
-          frontend = pkgs.callPackage ./pkgs/frontend.nix { };
+          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-eWiAe8X5g4F/JU0DhBDdRV49H2Vz0DC+HuUlhRqelHE="; };
         in
         rec {
           checks = packages;
