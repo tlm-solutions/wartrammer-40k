@@ -44,12 +44,23 @@ struct StatusResponse {
     time: NaiveDateTime
 }
 
+#[derive(Deserialize, Serialize)]
+struct MeasurementsResponse {
+    success: bool,
+    measurements: Vec<FinishedMeasurementInterval>
+}
+
 async fn start(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
     _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
     unlocked.start = Some(Utc::now().naive_utc());
+
+    // clear reset of the state
+    unlocked.stop = None;
+    unlocked.line = None;
+    unlocked.run = None;
 
     info!("entering vehicle at : {:?}", &unlocked.start);
     web::Json(Response { success: true, time: unlocked.start.unwrap() })
@@ -213,6 +224,27 @@ async fn state(
     web::Json(StatusResponse { success: true, status: unlocked.clone(), time: Utc::now().naive_utc() })
 }
 
+async fn saved_runs(
+    current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
+    _: web::Data<Mutex<CSVFile>>,
+) -> impl Responder {
+    let default_time_file = String::from("/var/lib/wartrammer-40k/times.json");
+    let time_file = env::var("PATH_DATA").unwrap_or(default_time_file);
+    
+    let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
+    let finishedMeasurements: Vec<FinishedMeasurementInterval>;
+    match serde_json::from_str(&time_data) {
+        Ok(data) => {
+            finishedMeasurements = data;
+        }
+        Err(_) => {
+            finishedMeasurements = Vec::new();
+        }
+    }
+
+    web::Json(MeasurementsResponse { success: true, measurements: finishedMeasurements })
+}
+
 async fn receive_r09(
     _: web::Data<Arc<Mutex<MeasurementInterval>>>,
     storage: web::Data<Mutex<CSVFile>>,
@@ -271,6 +303,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/stop", web::get().to(stop))
             .route("/api/finish", web::get().to(finish))
             .route("/api/state", web::get().to(state))
+            .route("/api/saved_runs", web::get().to(saved_runs))
             .route("/telegram/r09", web::post().to(receive_r09))
     })
     .bind((host, port))?
