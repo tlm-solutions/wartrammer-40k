@@ -96,12 +96,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   callApiPost(String endpoint, body, callback) async {
     try {
-      print("Calling endpoint $host$endpoint");
+      print("Calling endpoint $host$endpoint with body: $body");
       var request = await client.postUrl(Uri.parse(host + endpoint));
       request.headers.contentType =
           ContentType('application', 'json', charset: 'utf-8');
-      request.headers.set('Content-Length', body.length.toString());
-      request.add(body);
+      if (request is BrowserHttpClientRequest) {
+        print("Is BrowserHttpClientRequest");
+        request.browserCredentialsMode = true;
+      }
+      // request.headers.set('Content-Length', body.length.toString());
+      request.write(body);
       var response = await request.close();
       if (response.statusCode != 200) {
         throw Exception("HTTP status code is " +
