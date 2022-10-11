@@ -38,8 +38,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String elapsedTime = 'Not running';
   var client = HttpClient();
   String host = Uri.base.origin.toString(); // 'http://localhost:8000'
-  String line = '';
-  String run = '';
+  int line = 0;
+  int run = 0;
 
   getWatchTimeString() {
     return (watch.elapsed.inHours % 24).toString().padLeft(2, "0") +
@@ -104,15 +104,15 @@ class _MyHomePageState extends State<MyHomePage> {
         print("Is BrowserHttpClientRequest");
         request.browserCredentialsMode = true;
       }
-      // request.headers.set('Content-Length', body.length.toString());
       request.write(body);
       var response = await request.close();
+      final stringData = await response.transform(utf8.decoder).join();
       if (response.statusCode != 200) {
         throw Exception("HTTP status code is " +
             response.statusCode.toString() +
-            " not 200.");
+            " not 200.\n" +
+            stringData);
       }
-      final stringData = await response.transform(utf8.decoder).join();
       var decoded = json.decode(stringData);
       if (decoded['success'] == true) {
         callback();
@@ -161,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       labelText: 'Line number',
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => line = value,
+                    onChanged: (value) => line = int.parse(value),
                   ),
                 ),
                 Spacer(),
@@ -173,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       labelText: 'Run number',
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => run = value,
+                    onChanged: (value) => run = int.parse(value),
                   ),
                 ),
                 Spacer(),
