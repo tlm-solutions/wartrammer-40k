@@ -100,8 +100,8 @@ class _MyHomePageState extends State<MyHomePage> {
       var request = await client.postUrl(Uri.parse(host + endpoint));
       request.headers.contentType =
           ContentType('application', 'json', charset: 'utf-8');
-      request.headers.contentLength = body.length;
-      request.write(body);
+      request.headers.set('Content-Length', body.length.toString());
+      request.add(body);
       var response = await request.close();
       if (response.statusCode != 200) {
         throw Exception("HTTP status code is " +

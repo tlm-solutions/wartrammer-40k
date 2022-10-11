@@ -21,13 +21,14 @@
           backend = pkgs.callPackage ./pkgs/backend.nix {
             naersk = naersk.lib.${system};
           };
-          # frontend = pkgs.callPackage ./pkgs/frontend.nix { } { };
-          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-YvjVTNxzSqlrZp1oxGjyFU/UsFkfpYbfVNHG5+icaMM="; };
+          frontend-fakeHash = pkgs.callPackage ./pkgs/frontend.nix { } { };
+          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-4ExlJe9tc9lox7shv9d3Ggfk6NxZ/3NmhhAqZ957eZU="; };
         in
         rec {
           checks = packages;
           packages = {
             wartrammer-backend = backend;
+            wartrammer-frontend-fakeHash = frontend-fakeHash;
             wartrammer-frontend = frontend;
             default = backend;
           };
