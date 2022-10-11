@@ -15,6 +15,7 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use chrono::NaiveDateTime;
 use log::{info, warn, error, debug};
+use env_logger;
 
 use std::env;
 use std::fs;
@@ -131,6 +132,7 @@ async fn finish(
 
     // read measurements back in as FinishedMeasurementInterval because we don't have a method to
     // change one to the other
+    let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
     let mut finishedMeasurements: Vec<FinishedMeasurementInterval>;
     match serde_json::from_str(&time_data) {
         Ok(data) => {
@@ -230,6 +232,8 @@ async fn receive_r09(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
+
     let args = Args::parse();
 
     println!("Starting Data Collection Server ... ");
