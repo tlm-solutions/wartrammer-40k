@@ -266,6 +266,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   Spacer(),
                 ],
               ),
+              Padding(
+                padding: const EdgeInsets.only(left: 15, top: 25),
+                child: Row(
+                  children: <Widget>[
+                    Text(
+                      'Previous runs:',
+                      style: Theme.of(context).textTheme.headline5,
+                    ),
+                  ],
+                ),
+              ),
               DataTable(columns: const <DataColumn>[
                 DataColumn(
                   label: Expanded(

@@ -22,7 +22,7 @@
             naersk = naersk.lib.${system};
           };
           frontend-fakeHash = pkgs.callPackage ./pkgs/frontend.nix { } { };
-          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-1Jh3wZiX6wKj8F34Ni33ZtiT/WJdTswyHAOnQPtYf5w="; };
+          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-xAppihbEMmB4/Njgv1XBO1gkJjbmVWkg0w8e2YT2NMU="; };
         in
         rec {
           checks = packages;
