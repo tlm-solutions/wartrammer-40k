@@ -23,6 +23,31 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// https://stackoverflow.com/a/56499621
+class StopwatchEx {
+  final Stopwatch _stopWatch = Stopwatch();
+  Duration _initialOffset;
+
+  StopwatchEx({Duration initialOffset = Duration.zero})
+      : _initialOffset = initialOffset;
+
+  start() => _stopWatch.start();
+
+  stop() => _stopWatch.stop();
+
+  reset({Duration newInitialOffset = Duration.zero}) {
+    _stopWatch.reset();
+    _initialOffset = newInitialOffset ?? _initialOffset;
+  }
+
+  bool get isRunning => _stopWatch.isRunning;
+
+  Duration get elapsed => _stopWatch.elapsed + _initialOffset;
+
+  int get elapsedMilliseconds =>
+      _stopWatch.elapsedMilliseconds + _initialOffset.inMilliseconds;
+}
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -33,11 +58,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Stopwatch watch = Stopwatch();
+  StopwatchEx watch = StopwatchEx();
   Timer timer = Timer(Duration(milliseconds: 100), () {});
   String elapsedTime = 'Not running';
   var client = HttpClient();
   String host = Uri.base.origin.toString(); // 'http://localhost:8000'
+  // String host = 'http://localhost:7890';
   int line = 0;
   int run = 0;
 
@@ -84,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final stringData = await response.transform(utf8.decoder).join();
       var decoded = json.decode(stringData);
       if (decoded['success'] == true) {
-        callback();
+        callback(decoded);
       } else {
         throw Exception("Error occured in backend: $decoded");
       }
@@ -115,7 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       var decoded = json.decode(stringData);
       if (decoded['success'] == true) {
-        callback();
+        callback(decoded);
       } else {
         throw Exception("Error occured in backend: $decoded");
       }
@@ -125,8 +151,43 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // TODO: fetch current state (started, stopped, free to start at reload) and write to watch
-  // GET /api/state
+  @override
+  void initState() {
+    super.initState();
+
+    callApiGet(
+        '/api/state',
+        (data) => setState(() {
+              print(data);
+
+              var state = data['status'];
+
+              if (state['stop'] != null) {
+                // measurement is stopped, calculate time difference between start and stopped for the StopWatch
+                Duration diff = DateTime.parse(state['stop'])
+                    .difference(DateTime.parse(state['start']));
+                watch.stop();
+                watch.reset(newInitialOffset: diff);
+                elapsedTime = "Stopped at " + getWatchTimeString();
+              } else if (state['start'] != null) {
+                // measurement has started. calculate time differce between start and now for the StopWatch, start it.
+                Duration diff = DateTime.parse(data['time'])
+                    .difference(DateTime.parse(state['start']));
+                watch.reset(newInitialOffset: diff);
+                watch.start();
+                timer = Timer.periodic(Duration(milliseconds: 100), updateTime);
+              }
+
+              if (state['line'] != null) {
+                line = state['line'];
+              }
+
+              if (state['run'] != null) {
+                run = state['run'];
+              }
+            }));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -255,7 +316,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (watch.isRunning) {
                     callApiGet(
                         '/api/stop',
-                        () => setState(() {
+                        (_) => setState(() {
                               watch.stop();
                               elapsedTime =
                                   "Stopped at " + getWatchTimeString();
@@ -263,8 +324,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   } else {
                     callApiGet(
                         '/api/start',
-                        () => setState(() {
-                              watch.reset();
+                        (_) => setState(() {
+                              watch.reset(newInitialOffset: Duration.zero);
                               watch.start();
                               timer = Timer.periodic(
                                   Duration(milliseconds: 100), updateTime);
@@ -276,19 +337,21 @@ class _MyHomePageState extends State<MyHomePage> {
           Container(
             margin: EdgeInsets.all(10),
             child: FloatingActionButton(
-                backgroundColor: watch.elapsedTicks > 0 && !watch.isRunning
-                    ? Colors.blue
-                    : Colors.grey,
-                onPressed: watch.elapsedTicks > 0 && !watch.isRunning
+                backgroundColor:
+                    watch.elapsedMilliseconds > 0 && !watch.isRunning
+                        ? Colors.blue
+                        : Colors.grey,
+                onPressed: watch.elapsedMilliseconds > 0 && !watch.isRunning
                     ? () => {
                           callApiPost(
                               '/api/line_info',
                               json.encode({"line": line, "run": run}),
-                              () => callApiGet(
+                              (_) => callApiGet(
                                   '/api/finish',
-                                  () => setState(() {
+                                  (_) => setState(() {
                                         watch.stop();
-                                        watch.reset();
+                                        watch.reset(
+                                            newInitialOffset: Duration.zero);
                                         elapsedTime = "Not running";
                                       })))
                         }
