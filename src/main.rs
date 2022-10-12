@@ -112,15 +112,8 @@ async fn finish(
     let default_out_file = String::from("/var/lib/wartrammer-40k/out.csv");
     let out_file = env::var("OUT_DATA").unwrap_or(default_out_file);
 
-    // create time file if it does not exist
-    if !Path::new(&time_file).exists() {
-        debug!("time file at: {} doesn't exist trying to create it.", &time_file);
-        let _file = File::create(&time_file).expect("Cannot create file");
-    }
-
-    let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
-
     // read all previous
+    let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
     let mut measurements: Vec<MeasurementInterval>;
     match serde_json::from_str(&time_data) {
         Ok(data) => {
@@ -144,7 +137,7 @@ async fn finish(
     // read measurements back in as FinishedMeasurementInterval because we don't have a method to
     // change one to the other
     let time_data = fs::read_to_string(&time_file).expect("Unable to read file");
-    let mut finishedMeasurements: Vec<FinishedMeasurementInterval>;
+    let finishedMeasurements: Vec<FinishedMeasurementInterval>;
     match serde_json::from_str(&time_data) {
         Ok(data) => {
             finishedMeasurements = data;
@@ -283,6 +276,14 @@ async fn main() -> std::io::Result<()> {
             warn!("Did not create directories because of {:?}", e);
         }
     };
+
+    // create time file if it does not exist
+    let default_time_file = String::from("/var/lib/wartrammer-40k/times.json");
+    let time_file = env::var("PATH_DATA").unwrap_or(default_time_file);
+    if !Path::new(&time_file).exists() {
+        debug!("time file at: {} doesn't exist trying to create it.", &time_file);
+        let _file = File::create(&time_file).expect("Cannot create file");
+    }
 
     let current_run = web::Data::new(Arc::new(Mutex::new(MeasurementInterval {
         line: None,
