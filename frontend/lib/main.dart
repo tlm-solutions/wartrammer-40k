@@ -62,8 +62,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Timer timer = Timer(Duration(milliseconds: 100), () {});
   String elapsedTime = 'Not running';
   var client = HttpClient();
-  // String host = Uri.base.origin.toString(); // 'http://localhost:8000'
-  String host = 'http://localhost:7890';
+  String host = Uri.base.origin.toString(); // 'http://localhost:8000'
+  // String host = 'http://localhost:7890';
   int line = 0;
   int run = 0;
   List<DataRow> tableRows = [];
