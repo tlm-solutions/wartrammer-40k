@@ -62,18 +62,21 @@ class _MyHomePageState extends State<MyHomePage> {
   Timer timer = Timer(Duration(milliseconds: 100), () {});
   String elapsedTime = 'Not running';
   var client = HttpClient();
-  String host = Uri.base.origin.toString(); // 'http://localhost:8000'
-  // String host = 'http://localhost:7890';
+  // String host = Uri.base.origin.toString(); // 'http://localhost:8000'
+  String host = 'http://localhost:7890';
   int line = 0;
   int run = 0;
+  List<DataRow> tableRows = [];
 
-  getWatchTimeString() {
-    return (watch.elapsed.inHours % 24).toString().padLeft(2, "0") +
+  durationToString(duration) {
+    return (duration.inHours % 24).toString().padLeft(2, "0") +
         ":" +
-        (watch.elapsed.inMinutes % 60).toString().padLeft(2, "0") +
+        (duration.inMinutes % 60).toString().padLeft(2, "0") +
         ":" +
-        (watch.elapsed.inSeconds % 60).toString().padLeft(2, "0");
+        (duration.inSeconds % 60).toString().padLeft(2, "0");
   }
+
+  getWatchTimeString() => durationToString(watch.elapsed);
 
   void updateTime(Timer timer) {
     if (watch.isRunning) {
@@ -151,6 +154,26 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void updateTable() => callApiGet(
+      '/api/saved_runs',
+      (data) => setState(() {
+            tableRows = [];
+            var rows = data['measurements'];
+            for (var row in rows.reversed) {
+              var startTime = DateTime.parse(row['start']);
+              Duration diff = DateTime.parse(row['stop'])
+                  .difference(DateTime.parse(row['start']));
+              tableRows.add(DataRow(
+                cells: <DataCell>[
+                  DataCell(Text(startTime.toString())),
+                  DataCell(Text(durationToString(diff))),
+                  DataCell(Text(row['line'].toString())),
+                  DataCell(Text(row['run'].toString())),
+                ],
+              ));
+            }
+          }));
+
   @override
   void initState() {
     super.initState();
@@ -186,6 +209,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 run = state['run'];
               }
             }));
+
+    updateTable();
   }
 
   @override
@@ -207,41 +232,41 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.only(top: 25),
-        child: Column(
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Spacer(),
-                Expanded(
-                  flex: 10,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Line number',
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(top: 25),
+          child: Column(
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Spacer(),
+                  Expanded(
+                    flex: 10,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Line number',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) => line = int.parse(value),
                     ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) => line = int.parse(value),
                   ),
-                ),
-                Spacer(),
-                Expanded(
-                  flex: 10,
-                  child: TextField(
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Run number',
+                  Spacer(),
+                  Expanded(
+                    flex: 10,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Run number',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) => run = int.parse(value),
                     ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (value) => run = int.parse(value),
                   ),
-                ),
-                Spacer(),
-              ],
-            ),
-            DataTable(
-              columns: const <DataColumn>[
+                  Spacer(),
+                ],
+              ),
+              DataTable(columns: const <DataColumn>[
                 DataColumn(
                   label: Expanded(
                     child: Text(
@@ -274,35 +299,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 ),
-              ],
-              rows: <DataRow>[
-                DataRow(
-                  cells: <DataCell>[
-                    DataCell(Text('22:07')),
-                    DataCell(Text('01:10')),
-                    DataCell(Text('3')),
-                    DataCell(Text('8')),
-                  ],
-                ),
-                DataRow(
-                  cells: <DataCell>[
-                    DataCell(Text('18:02')),
-                    DataCell(Text('00:23')),
-                    DataCell(Text('5')),
-                    DataCell(Text('20')),
-                  ],
-                ),
-                DataRow(
-                  cells: <DataCell>[
-                    DataCell(Text('17:40')),
-                    DataCell(Text('00:20')),
-                    DataCell(Text('1')),
-                    DataCell(Text('2')),
-                  ],
-                ),
-              ],
-            ),
-          ],
+              ], rows: tableRows),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Wrap(
@@ -353,6 +352,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         watch.reset(
                                             newInitialOffset: Duration.zero);
                                         elapsedTime = "Not running";
+                                        updateTable();
                                       })))
                         }
                     : null,
