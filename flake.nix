@@ -36,8 +36,9 @@
       ) // {
       overlays.default = final: prev: {
         inherit (self.packages.${prev.system})
-          wartrammer-backend
-          wartrammer-frontend;
+        wartrammer-backend;
+        inherit (self.packages."x86_64-linux")
+        wartrammer-frontend;
       };
       hydraJobs =
         let
