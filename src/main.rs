@@ -52,7 +52,6 @@ struct MeasurementsResponse {
 
 async fn start(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
     unlocked.start = Some(Utc::now().naive_utc());
@@ -68,7 +67,6 @@ async fn start(
 
 async fn stop(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>,
     ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
     unlocked.stop = Some(Utc::now().naive_utc());
@@ -79,7 +77,6 @@ async fn stop(
 
 async fn meta_data(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>,
     meta_data: web::Json<LineInfo>,
 ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
@@ -94,7 +91,6 @@ async fn meta_data(
 
 async fn finish(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>,
 ) -> impl Responder {
     let mut unlocked = current_run.lock().unwrap();
     
@@ -210,7 +206,6 @@ async fn finish(
 
 async fn state(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>
 ) -> impl Responder {
     let unlocked = current_run.lock().unwrap().clone();
 
@@ -219,7 +214,6 @@ async fn state(
 
 async fn saved_runs(
     current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
-    _: web::Data<Mutex<CSVFile>>,
 ) -> impl Responder {
     let default_time_file = String::from("/var/lib/wartrammer-40k/times.json");
     let time_file = env::var("PATH_DATA").unwrap_or(default_time_file);
@@ -239,15 +233,16 @@ async fn saved_runs(
 }
 
 async fn receive_r09(
-    _: web::Data<Arc<Mutex<MeasurementInterval>>>,
+    current_run: web::Data<Arc<Mutex<MeasurementInterval>>>,
     storage: web::Data<Mutex<CSVFile>>,
     telegram: web::Json<R09ReceiveTelegram>
     ) -> impl Responder {
+    let unlocked = current_run.lock().unwrap().clone();
     
     let meta = TelegramMetaInformation {
         time: Utc::now().naive_utc(),
         station: uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap(),
-        region: -1
+        region: unlocked.region.unwrap(),
     };
 
     storage.lock().unwrap().write_r09(R09SaveTelegram::from(telegram.data.clone(), meta));
@@ -264,6 +259,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting Data Collection Server ... ");
     let host = args.host.as_str();
     let port = args.port;
+    let region = args.region;
 
     println!("Listening on: {}:{}", host, port);
 
@@ -290,6 +286,7 @@ async fn main() -> std::io::Result<()> {
         run: None,
         start: None,
         stop: None,
+        region: Some(region),
     })));
 
     let storage = web::Data::new(Mutex::new(CSVFile::new()));

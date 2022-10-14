@@ -2,12 +2,6 @@ extern crate clap;
 extern crate derive_builder;
 
 use clap::Parser;
-use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Response {
-    pub success: bool,
-}
 
 #[derive(Parser, Debug)]
 #[clap(name = "dump-dvb telegram collection sink")]
@@ -20,11 +14,7 @@ pub struct Args {
 
     #[clap(short, long, default_value_t = 8080)]
     pub port: u16,
-}
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct StopConfig {
-    pub name: String,
-    pub lat: f64,
-    pub lon: f64,
+	#[clap(short, long, default_value_t = -1)]
+	pub region: i32,
 }
