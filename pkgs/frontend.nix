@@ -55,6 +55,11 @@ EOF
         # make flutter user loacl canvaskit
         flutter build web --release -v --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
 
+        # remove nix store path from shaders
+        length=$(printf "%s" "${flutter.unwrapped}" | wc -c)
+        replaced_string=$(head -c "$length" < /dev/zero | tr '\0' '\57')
+        sed -i "s|${flutter.unwrapped}|$replaced_string|" build/web/assets/shaders/ink_sparkle.frag
+
         rm build/web/.last_build_id
       '';
 

@@ -1,6 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
+    nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
+    nixpkgs-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
 
     naersk = {
       url = github:nix-community/naersk;
@@ -12,17 +13,24 @@
     };
   };
 
-  outputs = { self, nixpkgs, naersk, utils, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, naersk, utils, ... }:
     utils.lib.eachDefaultSystem
       (system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
+          # flutterPackages has been updated to the version we need after 22.05
+          # this is here so we do not overlay from nixpkgs-unstable after the update to 22.11
+          pkgs = let
+            pkgs = import nixpkgs { inherit system; };
+            overlays = if pkgs.lib.hasPrefix "22.05" pkgs.lib.version
+            then [ (self: super: { flutterPackages = (super.callPackage "${nixpkgs-unstable}/pkgs/development/compilers/flutter" { }); }) ]
+            else [ ];
+          in import nixpkgs { inherit system overlays; };
 
           backend = pkgs.callPackage ./pkgs/backend.nix {
             naersk = naersk.lib.${system};
           };
           frontend-fakeHash = pkgs.callPackage ./pkgs/frontend.nix { } { };
-          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-xAppihbEMmB4/Njgv1XBO1gkJjbmVWkg0w8e2YT2NMU="; };
+          frontend = pkgs.callPackage ./pkgs/frontend.nix { } { vendorHash = "sha256-KU6bX2erGVRR/HnyA/sgDdWJ1FgE9/+aGYyTd0Jf774="; };
         in
         rec {
           checks = packages;
@@ -37,6 +45,7 @@
       overlays.default = final: prev: {
         inherit (self.packages.${prev.system})
         wartrammer-backend;
+        # wartrammer frontend needs to be build on x86_64-linux, but the output is generic html/js
         inherit (self.packages."x86_64-linux")
         wartrammer-frontend;
       };
