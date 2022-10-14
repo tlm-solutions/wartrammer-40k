@@ -35,6 +35,7 @@
 
         flutter config --no-analytics &>/dev/null # mute first-run
         flutter config --enable-web
+
         mkdir src
         cp -Pr $src/* src
         chmod +w src -R
@@ -56,9 +57,12 @@ EOF
         flutter build web --release -v --dart-define=FLUTTER_WEB_CANVASKIT_URL=/canvaskit/
 
         # remove nix store path from shaders
+        before_hash=$(md5sum build/web/assets/shaders/ink_sparkle.frag | awk '{ print $1; }')
         length=$(printf "%s" "${flutter.unwrapped}" | wc -c)
         replaced_string=$(head -c "$length" < /dev/zero | tr '\0' '\57')
         sed -i "s|${flutter.unwrapped}|$replaced_string|" build/web/assets/shaders/ink_sparkle.frag
+        after_hash=$(md5sum build/web/assets/shaders/ink_sparkle.frag | awk '{ print $1; }')
+        sed -i "s|$before_hash|$after_string|" build/web/flutter_service_worker.js
 
         rm build/web/.last_build_id
       '';
