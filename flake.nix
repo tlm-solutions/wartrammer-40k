@@ -40,6 +40,12 @@
             wartrammer-frontend = frontend;
             default = backend;
           };
+          devShells = rec {
+            default = backend;
+            backend = pkgs.mkShell {
+              nativeBuildInputs = (with packages.wartrammer-backend; nativeBuildInputs ++ buildInputs);
+            };
+          };
         }
       ) // {
       overlays.default = final: prev: {
