@@ -1,15 +1,15 @@
 {
   inputs = {
-    nixpkgs.url = github:NixOS/nixpkgs/nixos-22.05;
-    nixpkgs-unstable.url = github:NixOS/nixpkgs/nixos-unstable;
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     naersk = {
-      url = github:nix-community/naersk;
+      url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     utils = {
-      url = github:numtide/flake-utils;
+      url = "github:numtide/flake-utils";
     };
   };
 
