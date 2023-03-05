@@ -55,6 +55,12 @@
         inherit (self.packages."x86_64-linux")
         wartrammer-frontend;
       };
+
+      nixosModules = rec {
+        default = wartrammer;
+        wartrammer = import ./nixos-module;
+      };
+
       hydraJobs =
         let
           hydraSystems = [
